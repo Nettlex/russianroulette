@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useMiniKit } from "@coinbase/onchainkit/minikit";
 import { useAccount } from "wagmi";
+import { sdk } from '@farcaster/miniapp-sdk';
 import {
   Wallet,
   ConnectWallet,
@@ -29,6 +30,8 @@ export default function Home() {
     if (!isFrameReady) {
       setFrameReady();
     }
+    // Call Farcaster SDK ready to hide loading splash screen
+    sdk.actions.ready().catch(console.error);
   }, [setFrameReady, isFrameReady]);
 
   // Auto-hide welcome screen after 3 seconds or when wallet connects

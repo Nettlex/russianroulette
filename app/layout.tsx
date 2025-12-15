@@ -7,6 +7,20 @@ import "./globals.css";
 export const metadata: Metadata = {
   other: {
     'base:app_id': '69400e96d77c069a945bdf0f',
+    'fc:miniapp': JSON.stringify({
+      version: 'next',
+      imageUrl: 'https://russian-roulette-lyart.vercel.app/hero.png',
+      button: {
+        title: 'Launch Russian Roulette',
+        action: {
+          type: 'launch_miniapp',
+          name: 'Russian Roulette',
+          url: 'https://russian-roulette-lyart.vercel.app/',
+          splashImageUrl: 'https://russian-roulette-lyart.vercel.app/splash.png',
+          splashBackgroundColor: '#1a1a1a',
+        },
+      },
+    }),
   },
 };
 
