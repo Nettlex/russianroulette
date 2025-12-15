@@ -15,7 +15,7 @@ export function RootProvider({ children }: { children: ReactNode }) {
         },
         wallet: {
           display: "modal",
-          preference: ["coinbaseWalletSDK", "coinbaseWallet", "injected"],
+          preference: "all",
         },
       }}
       miniKit={{
