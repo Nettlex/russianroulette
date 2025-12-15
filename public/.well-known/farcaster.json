@@ -10,18 +10,18 @@
     "subtitle": "Test Your Luck",
     "description": "A thrilling Russian Roulette game on Farcaster. Play for free or compete for prizes!",
     "tagline": "Dare to pull the trigger?",
-    "homeUrl": "https://russianroulette-seven.vercel.app",
-    "iconUrl": "https://russianroulette-seven.vercel.app/icon.png",
-    "splashImageUrl": "https://russianroulette-seven.vercel.app/splash.png",
+    "homeUrl": "https://russian-roulette-lyart.vercel.app/",
+    "iconUrl": "https://russian-roulette-lyart.vercel.app/icon.png",
+    "splashImageUrl": "https://russian-roulette-lyart.vercel.app/splash.png",
     "splashBackgroundColor": "#1a1a1a",
     "primaryCategory": "games",
     "tags": ["games", "gambling", "competition"],
-    "heroImageUrl": "https://russianroulette-seven.vercel.app/hero.png",
+    "heroImageUrl": "https://russian-roulette-lyart.vercel.app/hero.png",
     "screenshotUrls": [],
-    "webhookUrl": "https://russianroulette-seven.vercel.app/api/webhook",
+    "webhookUrl": "https://russian-roulette-lyart.vercel.app/api/webhook",
     "ogTitle": "Russian Roulette - Farcaster Mini App",
     "ogDescription": "A thrilling Russian Roulette game where you can play for free or compete for USDC prizes!",
-    "ogImageUrl": "https://russianroulette-seven.vercel.app/hero.png"
+    "ogImageUrl": "https://russian-roulette-lyart.vercel.app/hero.png"
   }
 }
 

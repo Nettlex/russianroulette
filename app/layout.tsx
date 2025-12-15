@@ -6,7 +6,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   other: {
-    'base:app_id': '693f7571d77c069a945bdeea',
+    'base:app_id': '69400e96d77c069a945bdf0f',
   },
 };
 
