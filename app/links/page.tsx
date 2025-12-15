@@ -6,7 +6,7 @@ import { ArrowTopRightOnSquareIcon } from '@heroicons/react/24/outline';
 const links = [
   { title: "Base Main Docs", url: "https://docs.base.org/get-started/base" },
   { title: "Base OnchainKit", url: "https://docs.base.org/onchainkit/latest/getting-started/overview" },
-  { title: "Base Mini Apps", url: "https://docs.base.org/mini-apps/quickstart/migrate-existing-apps" },
+  { title: "Russian Roulette", url: "https://docs.base.org/mini-apps/quickstart/migrate-existing-apps" },
   { title: "Base Account", url: "https://docs.base.org/base-account/overview/what-is-base-account" },
   { title: "Coinbase Developer Platform", url: "https://portal.cdp.coinbase.com" },
   { title: "Vercel", url: "https://vercel.com" },
