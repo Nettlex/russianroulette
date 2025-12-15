@@ -36,6 +36,8 @@ export function calculatePrizeDistributionForLeaderboard(
     address: entry.address,
     triggerPulls: entry.totalPulls,
     deaths: entry.totalDeaths,
+    lastPlayed: Date.now(),
+    isPaid: true, // Prize distribution is only for paid entries
   }));
 
   // Calculate distribution using existing logic

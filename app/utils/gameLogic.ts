@@ -65,7 +65,7 @@ export function pullTrigger(gameState: GameState): GameState {
       triggerPulls: newTriggerPulls,
       deaths: gameState.deaths + 1,
       isGameOver: true,
-      currentChamber: gameState.bulletPosition, // Show the bullet chamber
+      currentChamber: gameState.bulletPosition ?? gameState.currentChamber, // Show the bullet chamber (fallback to current if null)
     };
   }
   

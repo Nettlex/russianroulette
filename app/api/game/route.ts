@@ -3,7 +3,20 @@ import { calculatePrizeDistributionForLeaderboard, saveDistributionLog, getDistr
 
 // In-memory storage (in production, use a database)
 const playerStats = new Map();
-const leaderboard = {
+
+interface LeaderboardEntry {
+  address: string;
+  triggerPulls: number;
+  deaths: number;
+  maxStreak: number;
+  rank?: number;
+  isPaid?: boolean;
+}
+
+const leaderboard: {
+  free: LeaderboardEntry[];
+  paid: LeaderboardEntry[];
+} = {
   free: [],
   paid: [],
 };
@@ -191,13 +204,19 @@ export async function POST(request: NextRequest) {
 
       logs.forEach(log => {
         if (log.distributionId === distributionId) {
-          (log.distributions as PrizeDistribution[]).forEach((dist) => {
+          for (let i = 0; i < log.distributions.length; i++) {
+            const dist = log.distributions[i] as PrizeDistribution;
             if (dist.address.toLowerCase() === userAddress.toLowerCase() && dist.status === 'pending') {
-              dist.status = 'approved';
-              dist.approvedAt = Date.now();
+              // Create new object with approvedAt property
+              log.distributions[i] = {
+                ...dist,
+                status: 'approved' as const,
+                approvedAt: Date.now()
+              };
               found = true;
+              break;
             }
-          });
+          }
           if (found) {
             log.approvedBy = userAddress;
             log.approvedAt = Date.now();
@@ -228,12 +247,12 @@ export async function POST(request: NextRequest) {
   }
 }
 
-function updateLeaderboard(stats: any) {
+function updateLeaderboard(stats: LeaderboardEntry) {
   const mode = stats.isPaid ? 'paid' : 'free';
   const board = leaderboard[mode];
 
   // Remove existing entry
-  const index = board.findIndex((entry: any) => entry.address === stats.address);
+  const index = board.findIndex((entry) => entry.address === stats.address);
   if (index >= 0) {
     board.splice(index, 1);
   }
@@ -242,7 +261,7 @@ function updateLeaderboard(stats: any) {
   board.push(stats);
 
   // Sort by trigger pulls (desc) and deaths (asc)
-  board.sort((a: any, b: any) => {
+  board.sort((a, b) => {
     if (b.triggerPulls !== a.triggerPulls) {
       return b.triggerPulls - a.triggerPulls;
     }
@@ -250,7 +269,7 @@ function updateLeaderboard(stats: any) {
   });
 
   // Add ranks
-  board.forEach((entry: any, index: number) => {
+  board.forEach((entry, index: number) => {
     entry.rank = index + 1;
   });
 
