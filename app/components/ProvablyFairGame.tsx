@@ -457,12 +457,9 @@ export default function ProvablyFairGame() {
     if (isHit) {
       playSound('bang');
       console.log('💀 BANG!');
-      // Show death video IMMEDIATELY - reset and play
+      // Show death video IMMEDIATELY
       hasPlayedVideo.current = true;
-      setShowDeathVideo(false); // Reset first
-      setTimeout(() => {
-        setShowDeathVideo(true);
-      }, 10);
+      setShowDeathVideo(true);
     } else {
       playSound('click');
       console.log('✓ CLICK');
@@ -979,15 +976,15 @@ export default function ProvablyFairGame() {
           initial={{ scale: 0.5, rotateY: 180 }}
           animate={{ scale: 1, rotateY: 0 }}
           transition={{ duration: 1, ease: "easeOut" }}
-          className="flex flex-col items-center justify-start w-full max-w-md"
+          className="flex flex-col items-center justify-center w-full max-w-md flex-1"
         >
           <p className="text-green-400 text-center mb-2 mt-0 font-bold text-sm">Ready to play!</p>
           
           {/* FRONT VIEW: Barrel aligned with TOP chamber hole */}
           <div className="relative w-full flex flex-col items-center justify-center">
             
-            {/* Barrel + Chamber Container */}
-            <div className="relative w-40 h-40 flex items-center justify-center">
+            {/* Barrel + Chamber Container - Centered */}
+            <div className="relative w-40 h-40 flex items-center justify-center mx-auto">
               
               {/* LAYER 1: Rotating Chamber (BEHIND barrel) */}
               <motion.div 
@@ -1415,12 +1412,15 @@ export default function ProvablyFairGame() {
       <AnimatePresence>
         {showDeathVideo && (
           <motion.div
-            initial={{ opacity: 1 }}
+            initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ exit: { duration: 0.2 } }}
-            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black"
-            onClick={() => setShowDeathVideo(false)}
+            transition={{ duration: 0.1 }}
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-transparent"
+            onClick={() => {
+              hasPlayedVideo.current = false;
+              setShowDeathVideo(false);
+            }}
           >
             <video
               ref={videoRef}
@@ -1450,7 +1450,7 @@ export default function ProvablyFairGame() {
                 }
               }}
               onEnded={() => {
-                // Close immediately when video ends (no delay)
+                // Close immediately when video ends
                 hasPlayedVideo.current = false;
                 setShowDeathVideo(false);
               }}
