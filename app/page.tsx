@@ -60,45 +60,31 @@ export default function Home() {
           
           console.log('Available connectors:', connectors.map(c => ({ id: c.id, name: c.name })));
           
-          // In Farcaster miniapp, OnchainKit should auto-connect, but if it doesn't work,
-          // we need to manually trigger connection. The issue is that modals don't work in iframes.
-          // OnchainKit with miniKit.enabled should handle this, but if not, we'll try manual connection.
+          // With Farcaster connector configured in wagmi, connection should work automatically
+          // But we can still try to auto-connect if needed
           if (!isConnected && connectors.length > 0) {
-            // Wait a bit for OnchainKit to initialize
             setTimeout(() => {
               if (!isConnected) {
                 try {
-                  // Look for Farcaster connector first
+                  // Look for Farcaster connector first (it's configured in wagmi.config.ts)
                   const farcasterConnector = connectors.find(c => 
                     c.id === 'farcasterMiniApp' || 
-                    c.id.includes('farcaster') ||
                     c.name?.toLowerCase().includes('farcaster')
                   );
                   
                   if (farcasterConnector) {
-                    console.log('Found Farcaster connector, attempting to connect...');
+                    console.log('Found Farcaster connector, connecting...');
                     connect({ connector: farcasterConnector });
-                  } else {
-                    // Try Coinbase Wallet SDK connector (works in miniapp)
-                    const cbConnector = connectors.find(c => 
-                      c.id === 'coinbaseWalletSDK' || 
-                      c.id === 'coinbaseWallet' ||
-                      c.id === 'coinbaseWalletSDK'
-                    );
-                    if (cbConnector) {
-                      console.log('Attempting to connect with Coinbase Wallet...');
-                      connect({ connector: cbConnector });
-                    } else if (connectors[0]) {
-                      // Fallback to first available connector
-                      console.log('Attempting to connect with first available connector:', connectors[0].id);
-                      connect({ connector: connectors[0] });
-                    }
+                  } else if (connectors[0]) {
+                    // Use first available connector
+                    console.log('Connecting with first connector:', connectors[0].id);
+                    connect({ connector: connectors[0] });
                   }
                 } catch (err) {
-                  console.log('Connection attempt failed:', err);
+                  console.error('Auto-connect failed:', err);
                 }
               }
-            }, 2000); // Increased delay to give OnchainKit more time
+            }, 1000);
           }
         }
       })
@@ -140,45 +126,76 @@ export default function Home() {
               <p className="text-sm text-gray-400 mb-3 text-center">
                 {isInMiniapp ? 'Wallet (Farcaster)' : 'Connect with Base'}
               </p>
-              <div className="flex justify-center">
-                <Wallet>
-                  <ConnectWallet className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition-all flex items-center justify-center gap-2">
-                  <svg className="h-5 w-5" viewBox="0 0 111 111" fill="none">
-                    <path d="M54.921 110.034C85.359 110.034 110.034 85.402 110.034 55.017C110.034 24.6319 85.359 0 54.921 0C26.0432 0 2.35281 22.1714 0 50.3923H72.8467V59.6416H3.9565e-07C2.35281 87.8625 26.0432 110.034 54.921 110.034Z" fill="white"/>
-                  </svg>
-                  <Name />
-                </ConnectWallet>
-                <WalletDropdown>
-                  <Identity className="px-4 pt-3 pb-2" hasCopyAddressOnClick>
-                    <Avatar />
-                    <Name />
-                    <Address />
-                    <EthBalance />
-                  </Identity>
-                  <WalletDropdownBasename />
-                  <WalletDropdownLink icon="wallet" href="https://wallet.coinbase.com">
-                    Wallet
-                  </WalletDropdownLink>
-                  <WalletDropdownFundLink />
-                  <WalletDropdownDisconnect />
-                </WalletDropdown>
-              </Wallet>
+              <div className="flex flex-col items-center w-full">
+                {!isConnected ? (
+                  // Show connect button with available connectors
+                  <div className="w-full">
+                    {connectors.length > 0 ? (
+                      <button
+                        onClick={() => {
+                          // In Farcaster, use the Farcaster connector, otherwise first available
+                          const farcasterConn = connectors.find(c => 
+                            c.id === 'farcasterMiniApp' || c.name?.toLowerCase().includes('farcaster')
+                          );
+                          const connector = isInMiniapp && farcasterConn ? farcasterConn : connectors[0];
+                          console.log('Connecting with:', connector.id, connector.name);
+                          connect({ connector });
+                        }}
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition-all flex items-center justify-center gap-2"
+                      >
+                        <svg className="h-5 w-5" viewBox="0 0 111 111" fill="none">
+                          <path d="M54.921 110.034C85.359 110.034 110.034 85.402 110.034 55.017C110.034 24.6319 85.359 0 54.921 0C26.0432 0 2.35281 22.1714 0 50.3923H72.8467V59.6416H3.9565e-07C2.35281 87.8625 26.0432 110.034 54.921 110.034Z" fill="white"/>
+                        </svg>
+                        <span>Connect Wallet</span>
+                      </button>
+                    ) : (
+                      <button
+                        disabled
+                        className="w-full bg-gray-600 text-white font-bold py-3 px-6 rounded-lg opacity-50 cursor-not-allowed"
+                      >
+                        No Wallet Connectors Available
+                      </button>
+                    )}
+                    {isInMiniapp && farcasterAddress && (
+                      <p className="text-xs text-blue-400 mt-2 text-center">
+                        Farcaster wallet: {farcasterAddress.slice(0, 6)}...{farcasterAddress.slice(-4)}
+                      </p>
+                    )}
+                    {isInMiniapp && (
+                      <p className="text-xs text-yellow-400 mt-2 text-center">
+                        Click button above to connect in Farcaster
+                      </p>
+                    )}
+                    {!isInMiniapp && (
+                      <p className="text-xs text-gray-500 mt-2 text-center">
+                        Click to connect your wallet
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  // Show wallet info when connected
+                  <Wallet>
+                    <ConnectWallet className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition-all flex items-center justify-center gap-2">
+                      <Avatar className="h-5 w-5" />
+                      <Name />
+                    </ConnectWallet>
+                    <WalletDropdown>
+                      <Identity className="px-4 pt-3 pb-2" hasCopyAddressOnClick>
+                        <Avatar />
+                        <Name />
+                        <Address />
+                        <EthBalance />
+                      </Identity>
+                      <WalletDropdownBasename />
+                      <WalletDropdownLink icon="wallet" href="https://wallet.coinbase.com">
+                        Wallet
+                      </WalletDropdownLink>
+                      <WalletDropdownFundLink />
+                      <WalletDropdownDisconnect />
+                    </WalletDropdown>
+                  </Wallet>
+                )}
               </div>
-              {isInMiniapp && farcasterAddress && (
-                <p className="text-xs text-blue-400 mt-2 text-center">
-                  Farcaster wallet detected: {farcasterAddress.slice(0, 6)}...{farcasterAddress.slice(-4)}
-                </p>
-              )}
-              {isInMiniapp && !isConnected && (
-                <p className="text-xs text-yellow-400 mt-2 text-center">
-                  In Farcaster miniapp - wallet should auto-connect
-                </p>
-              )}
-              {!isInMiniapp && !isConnected && (
-                <p className="text-xs text-gray-500 mt-2 text-center">
-                  Click to connect your wallet
-                </p>
-              )}
             </div>
 
             {/* Farcaster Login */}
