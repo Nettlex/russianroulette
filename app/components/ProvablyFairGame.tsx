@@ -478,7 +478,6 @@ export default function ProvablyFairGame() {
     stopBuildup();
     
     if (state.phase !== 'LOADED' && state.phase !== 'PLAYING') return;
-    if (state.phase === 'REVEAL' || state.phase === 'DEAD') return; // Block trigger during death screen
     if (isAnimating) return;
     if (triggerCooldown) return; // Block during cooldown
     if (viewMode !== 'front') return;
