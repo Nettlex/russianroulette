@@ -112,10 +112,10 @@ export default function ProvablyFairGame() {
       setUsername(newUsername);
       setShowUsernameModal(false);
       
-      // Re-sync stats with new username
-      if (playerStats.totalPulls > 0 || playerStats.totalDeaths > 0) {
-        savePlayerStats(playerStats);
-      }
+      console.log('✅ Username saved:', newUsername, 'for address:', address);
+      
+      // Re-sync stats with new username immediately
+      savePlayerStats(playerStats);
     }
   };
   
@@ -392,7 +392,18 @@ export default function ProvablyFairGame() {
     // Sync to API for global leaderboard (only if wallet is connected)
     if (address && isConnected) {
       try {
-        await fetch('/api/game', {
+        console.log('📤 Syncing stats to API:', {
+          address,
+          username,
+          stats: {
+            triggerPulls: stats.totalPulls,
+            deaths: stats.totalDeaths,
+            maxStreak: stats.maxStreak,
+            isPaid: !isFreeModePlayer,
+          }
+        });
+        
+        const response = await fetch('/api/game', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -409,6 +420,9 @@ export default function ProvablyFairGame() {
             },
           }),
         });
+        
+        const result = await response.json();
+        console.log('✅ Stats synced:', result);
       } catch (error) {
         console.error('Error syncing stats to API:', error);
         // Don't block the UI if API sync fails

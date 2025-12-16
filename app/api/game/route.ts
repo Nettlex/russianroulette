@@ -6,6 +6,7 @@ const playerStats = new Map();
 
 interface LeaderboardEntry {
   address: string;
+  username?: string;
   triggerPulls: number;
   deaths: number;
   maxStreak: number;
@@ -264,6 +265,7 @@ function updateLeaderboard(stats: LeaderboardEntry) {
   // Add updated entry with all required fields
   const entry: LeaderboardEntry = {
     address: stats.address,
+    username: stats.username,
     triggerPulls: stats.triggerPulls || 0,
     deaths: stats.deaths || 0,
     maxStreak: stats.maxStreak || 0,

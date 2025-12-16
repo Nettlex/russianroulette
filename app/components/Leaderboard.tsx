@@ -46,6 +46,13 @@ export default function Leaderboard({ mode: initialMode }: { mode: 'free' | 'pai
           const riskMultiplier = 1 + (deaths / Math.max(1, pulls));
           const score = maxStreak * riskMultiplier;
           
+          console.log('📊 Leaderboard entry:', {
+            address: entry.address,
+            username: entry.username,
+            name: entry.name,
+            finalName: entry.username || entry.name
+          });
+          
           return {
             address: entry.address,
             name: entry.username || entry.name, // Use username from API
