@@ -11,11 +11,13 @@ interface ProfileProps {
     maxStreak: number;
   };
   userBalance: number;
+  username?: string;
   onDeposit: () => void;
   onWithdraw: () => void;
+  onEditUsername?: () => void;
 }
 
-export default function Profile({ playerStats, userBalance, onDeposit, onWithdraw }: ProfileProps) {
+export default function Profile({ playerStats, userBalance, username, onDeposit, onWithdraw, onEditUsername }: ProfileProps) {
   const { address, isConnected } = useAccount();
 
   const calculateScore = (maxStreak: number, totalPulls: number, totalDeaths: number) => {
@@ -40,9 +42,27 @@ export default function Profile({ playerStats, userBalance, onDeposit, onWithdra
             <div className="flex items-center gap-3">
               <Avatar className="h-12 w-12" />
               <div className="flex-1">
-                <Name className="font-bold" />
-                <Address className="text-xs text-gray-500" />
+                {username ? (
+                  <div>
+                    <p className="font-bold text-white">{username}</p>
+                    <Address className="text-xs text-gray-500" />
+                  </div>
+                ) : (
+                  <div>
+                    <Name className="font-bold" />
+                    <Address className="text-xs text-gray-500" />
+                  </div>
+                )}
               </div>
+              {onEditUsername && (
+                <button
+                  onClick={onEditUsername}
+                  className="text-xs bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white px-3 py-1 rounded-lg transition-all"
+                  title="Edit username"
+                >
+                  ✏️
+                </button>
+              )}
             </div>
             
             <div className="pt-3 border-t border-gray-800">

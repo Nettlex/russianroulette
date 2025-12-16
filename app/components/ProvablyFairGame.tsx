@@ -22,6 +22,7 @@ import { generateFairRound } from '../utils/provableFair';
 import FairnessVerification from './FairnessVerification';
 import Leaderboard from './Leaderboard';
 import Profile from './Profile';
+import UsernameModal from './UsernameModal';
 import { getUserBalance, getTotalAvailableBalance, approvePendingPrize } from '../utils/balanceManager';
 import { getPendingDistributionsForAddress } from '../utils/prizeDistribution';
 import { useUSDCPayment } from '../hooks/useUSDCPayment';
@@ -89,6 +90,34 @@ export default function ProvablyFairGame() {
   const [hasCompletedFirstRound, setHasCompletedFirstRound] = useState(false);
   const [showPaymentChoice, setShowPaymentChoice] = useState(false);
   const [isFreeModePlayer, setIsFreeModePlayer] = useState(true);
+  
+  // Username management
+  const [username, setUsername] = useState<string>('');
+  const [showUsernameModal, setShowUsernameModal] = useState(false);
+  
+  // Load username from localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined' && address) {
+      const savedUsername = localStorage.getItem(`username_${address}`);
+      if (savedUsername) {
+        setUsername(savedUsername);
+      }
+    }
+  }, [address]);
+  
+  // Save username to localStorage
+  const handleSaveUsername = (newUsername: string) => {
+    if (typeof window !== 'undefined' && address) {
+      localStorage.setItem(`username_${address}`, newUsername);
+      setUsername(newUsername);
+      setShowUsernameModal(false);
+      
+      // Re-sync stats with new username
+      if (playerStats.totalPulls > 0 || playerStats.totalDeaths > 0) {
+        savePlayerStats(playerStats);
+      }
+    }
+  };
   
   // Reload stats when mode changes
   useEffect(() => {
@@ -371,6 +400,7 @@ export default function ProvablyFairGame() {
           body: JSON.stringify({
             action: 'updateStats',
             address,
+            username: username || undefined, // Include username if set
             stats: {
               triggerPulls: stats.totalPulls,
               deaths: stats.totalDeaths,
@@ -817,8 +847,10 @@ export default function ProvablyFairGame() {
         <Profile 
           playerStats={playerStats}
           userBalance={userBalance}
+          username={username}
           onDeposit={() => setShowDepositModal(true)}
           onWithdraw={() => setShowWithdrawModal(true)}
+          onEditUsername={() => setShowUsernameModal(true)}
         />
         
         {/* Bottom Navigation */}
@@ -1939,6 +1971,14 @@ export default function ProvablyFairGame() {
           </button>
         </div>
       </div>
+      
+      {/* Username Modal */}
+      <UsernameModal
+        isOpen={showUsernameModal}
+        currentUsername={username}
+        onSave={handleSaveUsername}
+        onClose={() => setShowUsernameModal(false)}
+      />
     </div>
   );
 }

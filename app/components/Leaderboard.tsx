@@ -48,6 +48,7 @@ export default function Leaderboard({ mode: initialMode }: { mode: 'free' | 'pai
           
           return {
             address: entry.address,
+            name: entry.username || entry.name, // Use username from API
             maxStreak,
             totalPulls: pulls,
             totalDeaths: deaths,
@@ -172,10 +173,21 @@ export default function Leaderboard({ mode: initialMode }: { mode: 'free' | 'pai
                     {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`}
                   </div>
                   <div>
-                    <p className="font-bold text-sm">
-                      {entry.name || `${entry.address.slice(0, 6)}...${entry.address.slice(-4)}`}
-                    </p>
-                    <p className="text-xs text-gray-500">
+                    {entry.name ? (
+                      <>
+                        <p className="font-bold text-sm text-white">
+                          {entry.name}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {entry.address.slice(0, 6)}...{entry.address.slice(-4)}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="font-bold text-sm">
+                        {entry.address.slice(0, 6)}...{entry.address.slice(-4)}
+                      </p>
+                    )}
+                    <p className="text-xs text-gray-600 mt-1">
                       Streak: {entry.maxStreak} • Deaths: {entry.totalDeaths} • Pulls: {entry.totalPulls}
                     </p>
                   </div>

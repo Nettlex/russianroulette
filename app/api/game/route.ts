@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { action, address, stats } = body;
+    const { action, address, stats, username } = body;
 
     if (action === 'updateStats') {
       if (!address || !stats) {
@@ -111,6 +111,7 @@ export async function POST(request: NextRequest) {
         maxStreak: stats.maxStreak !== undefined ? Math.max(existingStats.maxStreak || 0, stats.maxStreak) : (existingStats.maxStreak || 0),
         lastPlayed: Date.now(),
         isPaid: stats.isPaid !== undefined ? stats.isPaid : existingStats.isPaid,
+        username: username || existingStats.username, // Save username if provided
       };
 
       playerStats.set(address, updatedStats);

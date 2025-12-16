@@ -60,3 +60,4 @@ Deploy and test in Farcaster app:
 - ✅ `app/page.tsx` - Improved connect button logic
 - ✅ `app/components/ProvablyFairGame.tsx` - Added Farcaster context detection
 
+
