@@ -57,13 +57,13 @@ export async function GET(request: NextRequest) {
   }
 
   if (action === 'stats' && address) {
-    const stats = getPlayerStats(address);
+    const stats = await getPlayerStats(address);
     return NextResponse.json({ stats: stats || null });
   }
 
   if (action === 'balance' && address) {
     // SERVER-AUTHORITATIVE: Get balance from Edge Config
-    const balance = getPlayerBalance(address);
+    const balance = await getPlayerBalance(address);
     console.log('💰 Balance fetched for', address, ':', balance);
     return NextResponse.json({ balance });
   }
@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
 
   if (action === 'pendingPrizes' && address) {
     // Get pending prizes from server storage
-    const balance = getPlayerBalance(address);
+    const balance = await getPlayerBalance(address);
     console.log('🎁 Pending prizes for', address, ':', balance.pendingPrizes);
     return NextResponse.json({ pendingPrizes: balance.pendingPrizes });
   }
@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Missing address' }, { status: 400 });
       }
 
-      const existingStats = getPlayerStats(address) || {
+      const existingStats = await getPlayerStats(address) || {
         address,
         triggerPulls: 0,
         deaths: 0,
@@ -145,7 +145,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Missing address' }, { status: 400 });
       }
 
-      const existingStats = getPlayerStats(address) || {
+      const existingStats = await getPlayerStats(address) || {
         address,
         triggerPulls: 0,
         deaths: 0,
@@ -187,7 +187,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Missing address' }, { status: 400 });
       }
 
-      const existingStats = getPlayerStats(address) || {
+      const existingStats = await getPlayerStats(address) || {
         address,
         triggerPulls: 0,
         deaths: 0,
@@ -228,7 +228,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Missing address or username' }, { status: 400 });
       }
 
-      const existingStats = getPlayerStats(address) || {
+      const existingStats = await getPlayerStats(address) || {
         address,
         triggerPulls: 0,
         deaths: 0,
@@ -277,7 +277,7 @@ export async function POST(request: NextRequest) {
       });
 
       // Update player stats
-      const existingStats = getPlayerStats(address) || {
+      const existingStats = await getPlayerStats(address) || {
         address,
         triggerPulls: 0,
         deaths: 0,

@@ -175,7 +175,8 @@ export async function updateLeaderboardEntry(
   mode: 'free' | 'paid',
   entry: LeaderboardEntry
 ): Promise<void> {
-  const data = getData();
+  // ✅ FIX: ALWAYS load fresh data before writing to prevent overwriting!
+  const data = await loadData();
   const board = data.leaderboard[mode];
   
   // Remove existing entry
@@ -215,7 +216,8 @@ export async function updatePlayerStats(
   address: string,
   stats: any
 ): Promise<void> {
-  const data = getData();
+  // ✅ FIX: ALWAYS load fresh data before writing to prevent overwriting!
+  const data = await loadData();
   data.playerStats[address] = {
     ...data.playerStats[address],
     ...stats,
@@ -228,8 +230,9 @@ export async function updatePlayerStats(
 /**
  * Get player stats
  */
-export function getPlayerStats(address: string): any {
-  const data = getData();
+export async function getPlayerStats(address: string): Promise<any> {
+  // ✅ FIX: Load fresh data to avoid returning stale cache
+  const data = await loadData();
   return data.playerStats[address] || null;
 }
 
@@ -240,7 +243,8 @@ export async function updatePrizePool(update: {
   totalAmount?: number;
   participants?: number;
 }): Promise<void> {
-  const data = getData();
+  // ✅ FIX: ALWAYS load fresh data before writing to prevent overwriting!
+  const data = await loadData();
   data.prizePool = {
     ...data.prizePool,
     ...update,
@@ -264,8 +268,9 @@ export async function initStorage(): Promise<void> {
 /**
  * Get player balance from server
  */
-export function getPlayerBalance(address: string): PlayerBalance {
-  const data = getData();
+export async function getPlayerBalance(address: string): Promise<PlayerBalance> {
+  // ✅ FIX: Load fresh data to avoid returning stale cache
+  const data = await loadData();
   return data.playerBalances[address] || {
     balance: 0,
     pendingPrizes: 0,
@@ -283,8 +288,15 @@ export async function addBalance(
   amount: number,
   type: 'deposit' | 'prize'
 ): Promise<PlayerBalance> {
-  const data = getData();
-  const current = getPlayerBalance(address);
+  // ✅ FIX: ALWAYS load fresh data before writing to prevent overwriting!
+  const data = await loadData();
+  const current = data.playerBalances[address] || {
+    balance: 0,
+    pendingPrizes: 0,
+    totalDeposited: 0,
+    totalWithdrawn: 0,
+    lastUpdated: Date.now(),
+  };
   
   const updated: PlayerBalance = {
     ...current,
@@ -308,8 +320,15 @@ export async function deductBalance(
   amount: number,
   type: 'bet' | 'withdrawal'
 ): Promise<PlayerBalance> {
-  const data = getData();
-  const current = getPlayerBalance(address);
+  // ✅ FIX: ALWAYS load fresh data before writing to prevent overwriting!
+  const data = await loadData();
+  const current = data.playerBalances[address] || {
+    balance: 0,
+    pendingPrizes: 0,
+    totalDeposited: 0,
+    totalWithdrawn: 0,
+    lastUpdated: Date.now(),
+  };
   
   if (current.balance < amount) {
     throw new Error(`Insufficient balance: have ${current.balance}, need ${amount}`);
@@ -336,8 +355,15 @@ export async function addPendingPrize(
   address: string,
   amount: number
 ): Promise<PlayerBalance> {
-  const data = getData();
-  const current = getPlayerBalance(address);
+  // ✅ FIX: ALWAYS load fresh data before writing to prevent overwriting!
+  const data = await loadData();
+  const current = data.playerBalances[address] || {
+    balance: 0,
+    pendingPrizes: 0,
+    totalDeposited: 0,
+    totalWithdrawn: 0,
+    lastUpdated: Date.now(),
+  };
   
   const updated: PlayerBalance = {
     ...current,
@@ -359,8 +385,15 @@ export async function approvePendingPrize(
   address: string,
   amount: number
 ): Promise<PlayerBalance> {
-  const data = getData();
-  const current = getPlayerBalance(address);
+  // ✅ FIX: ALWAYS load fresh data before writing to prevent overwriting!
+  const data = await loadData();
+  const current = data.playerBalances[address] || {
+    balance: 0,
+    pendingPrizes: 0,
+    totalDeposited: 0,
+    totalWithdrawn: 0,
+    lastUpdated: Date.now(),
+  };
   
   if (current.pendingPrizes < amount) {
     throw new Error(`Insufficient pending prizes: have ${current.pendingPrizes}, trying to approve ${amount}`);
