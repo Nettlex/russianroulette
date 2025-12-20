@@ -1,7 +1,7 @@
 "use client";
 import { useReducer, useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useAccount, useSendCalls, useWaitForTransactionReceipt } from 'wagmi';
+import { useAccount, useSendCalls, useWaitForTransactionReceipt, useConnect, useDisconnect } from 'wagmi';
 import { parseUnits, encodeFunctionData } from 'viem';
 import { sdk } from '@farcaster/miniapp-sdk';
 import {
@@ -29,6 +29,8 @@ import { useUSDCPayment } from '../hooks/useUSDCPayment';
 
 export default function ProvablyFairGame() {
   const { address: wagmiAddress, isConnected: wagmiConnected } = useAccount();
+  const { connect, connectors, isPending: isConnectPending } = useConnect();
+  const { disconnect } = useDisconnect();
   
   // Check for Farcaster context and use its wallet address
   const [farcasterAddress, setFarcasterAddress] = useState<string | null>(null);
@@ -65,9 +67,37 @@ export default function ProvablyFairGame() {
       wagmiAddress,
       wagmiConnected,
       finalAddress: address,
-      finalIsConnected: isConnected
+      finalIsConnected: isConnected,
+      availableConnectors: connectors.map(c => c.name)
     });
-  }, [isInMiniapp, farcasterAddress, wagmiAddress, wagmiConnected, address, isConnected]);
+  }, [isInMiniapp, farcasterAddress, wagmiAddress, wagmiConnected, address, isConnected, connectors]);
+  
+  // Manual connect handler (fallback)
+  const handleManualConnect = async () => {
+    console.log('🔌 Manual connect triggered');
+    console.log('Available connectors:', connectors);
+    
+    if (connectors.length === 0) {
+      alert('No wallet connectors available. Please install Coinbase Wallet or MetaMask.');
+      return;
+    }
+    
+    try {
+      // Try Coinbase Wallet first
+      const coinbaseConnector = connectors.find(c => c.name.includes('Coinbase'));
+      if (coinbaseConnector) {
+        console.log('Connecting with Coinbase Wallet...');
+        connect({ connector: coinbaseConnector });
+      } else {
+        // Use first available connector
+        console.log('Connecting with:', connectors[0].name);
+        connect({ connector: connectors[0] });
+      }
+    } catch (error) {
+      console.error('Connection error:', error);
+      alert('Failed to connect wallet: ' + (error as Error).message);
+    }
+  };
   
   // USDC contract address
   const USDC_ADDRESS = process.env.NEXT_PUBLIC_CHAIN === 'mainnet'
@@ -1016,24 +1046,38 @@ export default function ProvablyFairGame() {
         {/* Buttons Row - Compact */}
         <div className="flex items-center justify-between mb-1 gap-1">
           {/* Left - Wallet with Base logo */}
-          <Wallet>
-            <ConnectWallet className="bg-blue-600 hover:bg-blue-700 text-white text-[10px] px-2 py-1 rounded-lg transition-all flex items-center gap-1">
+          {!isConnected ? (
+            // Manual connect button (more reliable)
+            <button
+              onClick={handleManualConnect}
+              disabled={isConnectPending}
+              className="bg-blue-600 hover:bg-blue-700 text-white text-[10px] px-2 py-1 rounded-lg transition-all flex items-center gap-1 disabled:opacity-50"
+            >
               <svg className="h-3 w-3" viewBox="0 0 111 111" fill="none">
                 <path d="M54.921 110.034C85.359 110.034 110.034 85.402 110.034 55.017C110.034 24.6319 85.359 0 54.921 0C26.0432 0 2.35281 22.1714 0 50.3923H72.8467V59.6416H3.9565e-07C2.35281 87.8625 26.0432 110.034 54.921 110.034Z" fill="white"/>
               </svg>
-              <Avatar className="h-4 w-4" />
-              <Name />
-            </ConnectWallet>
-            <WalletDropdown>
-              <Identity className="px-4 pt-3 pb-2" hasCopyAddressOnClick>
-                <Avatar />
+              {isConnectPending ? 'Connecting...' : 'Connect Wallet'}
+            </button>
+          ) : (
+            <Wallet>
+              <ConnectWallet className="bg-blue-600 hover:bg-blue-700 text-white text-[10px] px-2 py-1 rounded-lg transition-all flex items-center gap-1">
+                <svg className="h-3 w-3" viewBox="0 0 111 111" fill="none">
+                  <path d="M54.921 110.034C85.359 110.034 110.034 85.402 110.034 55.017C110.034 24.6319 85.359 0 54.921 0C26.0432 0 2.35281 22.1714 0 50.3923H72.8467V59.6416H3.9565e-07C2.35281 87.8625 26.0432 110.034 54.921 110.034Z" fill="white"/>
+                </svg>
+                <Avatar className="h-4 w-4" />
                 <Name />
-                <Address />
-              </Identity>
-              <WalletDropdownFundLink />
-              <WalletDropdownDisconnect />
-            </WalletDropdown>
-          </Wallet>
+              </ConnectWallet>
+              <WalletDropdown>
+                <Identity className="px-4 pt-3 pb-2" hasCopyAddressOnClick>
+                  <Avatar />
+                  <Name />
+                  <Address />
+                </Identity>
+                <WalletDropdownFundLink />
+                <WalletDropdownDisconnect />
+              </WalletDropdown>
+            </Wallet>
+          )}
           
           {/* Right - Free/Paid Mode Buttons */}
           <div className="flex gap-1">
