@@ -23,6 +23,7 @@ import FairnessVerification from './FairnessVerification';
 import Leaderboard from './Leaderboard';
 import Profile from './Profile';
 import UsernameModal from './UsernameModal';
+import { ToastContainer } from './Toast';
 import { getPendingDistributionsForAddress } from '../utils/prizeDistribution';
 // Removed: getUserBalance, getTotalAvailableBalance, approvePendingPrize - now server-authoritative
 import { useUSDCPayment } from '../hooks/useUSDCPayment';
@@ -78,7 +79,7 @@ export default function ProvablyFairGame() {
     console.log('Available connectors:', connectors);
     
     if (connectors.length === 0) {
-      alert('No wallet connectors available. Please install Coinbase Wallet or MetaMask.');
+      showToast('No wallet connectors available. Please install Coinbase Wallet or MetaMask.', 'error');
       return;
     }
     
@@ -95,7 +96,7 @@ export default function ProvablyFairGame() {
       }
     } catch (error) {
       console.error('Connection error:', error);
-      alert('Failed to connect wallet: ' + (error as Error).message);
+      showToast('Failed to connect wallet: ' + (error as Error).message, 'error');
     }
   };
   
@@ -199,6 +200,18 @@ export default function ProvablyFairGame() {
   const [showPendingPrizesModal, setShowPendingPrizesModal] = useState(false);
   const [depositCurrency, setDepositCurrency] = useState<'USDC' | 'ETH'>('USDC'); // Currency selection
   
+  // Toast notifications (replaces alert() for iframe compatibility)
+  const [toasts, setToasts] = useState<Array<{ id: string; message: string; type: 'success' | 'error' | 'info' | 'warning' }>>([]);
+  
+  const showToast = (message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
+    const id = Date.now().toString() + Math.random().toString(36);
+    setToasts(prev => [...prev, { id, message, type }]);
+  };
+  
+  const removeToast = (id: string) => {
+    setToasts(prev => prev.filter(toast => toast.id !== id));
+  };
+  
   // Handle deposit success - record on server with transaction hash as proof
   useEffect(() => {
     if (isDepositSuccess && depositHash && address) {
@@ -231,16 +244,16 @@ export default function ProvablyFairGame() {
             localStorage.removeItem(`lastDepositAmount_${address}`);
             localStorage.removeItem(`lastDepositCurrency_${address}`);
             setShowDepositModal(false);
-            alert(`✅ Deposit confirmed! ${result.verifiedAmount.toFixed(4)} ${depositCurrency} (≈$${result.usdValue.toFixed(2)}) added to your balance.`);
+            showToast(`Deposit confirmed!\n${result.verifiedAmount.toFixed(4)} ${depositCurrency} (≈$${result.usdValue.toFixed(2)}) added to your balance.`, 'success');
           } else {
             console.error('❌ Deposit verification failed:', result.error);
-            alert(`❌ Deposit verification failed: ${result.error}`);
+            showToast(`Deposit verification failed: ${result.error}`, 'error');
             localStorage.removeItem(`lastDepositAmount_${address}`);
             localStorage.removeItem(`lastDepositCurrency_${address}`);
           }
         } catch (error) {
           console.error('❌ Error recording deposit:', error);
-          alert('❌ Error recording deposit. Please contact support with your transaction hash: ' + depositHash);
+          showToast('Error recording deposit. Please contact support with your transaction hash: ' + depositHash, 'error');
         }
       };
       
@@ -592,25 +605,25 @@ export default function ProvablyFairGame() {
         setUserBalance(result.balance.balance);
         setPendingPrizes(result.balance.pendingPrizes);
         setShowPendingPrizesModal(false);
-        alert(`✅ Approved ${amount.toFixed(2)} USDC prize! Added to your balance.`);
+        showToast(`Approved ${amount.toFixed(2)} USDC prize! Added to your balance.`, 'success');
       } else {
-        alert(`Error: ${result.error || 'Failed to approve prize'}`);
+        showToast(`Error: ${result.error || 'Failed to approve prize'}`, 'error');
       }
     } catch (error) {
       console.error('❌ Error approving prize:', error);
-      alert('Failed to approve prize. Please try again.');
+      showToast('Failed to approve prize. Please try again.', 'error');
     }
   };
 
   // Handle deposit - actually transfer USDC from wallet to deposit address
   const handleDeposit = async (amount: number, currency: 'USDC' | 'ETH' = 'USDC') => {
     if (!isConnected || !address) {
-      alert('Please connect wallet first');
+      showToast('Please connect wallet first', 'warning');
       return;
     }
 
     if (amount <= 0) {
-      alert('Invalid deposit amount');
+      showToast('Invalid deposit amount', 'error');
       return;
     }
 
@@ -618,12 +631,12 @@ export default function ProvablyFairGame() {
       if (currency === 'USDC') {
         // USDC deposit
         if (usdcBalance < amount) {
-          alert(`Insufficient USDC balance. You have ${usdcBalance.toFixed(2)} USDC.`);
+          showToast(`Insufficient USDC balance. You have ${usdcBalance.toFixed(2)} USDC.`, 'error');
           return;
         }
 
         if (!DEPOSIT_WALLET || DEPOSIT_WALLET === '0x0000000000000000000000000000000000000000') {
-          alert('Deposit wallet not configured');
+          showToast('Deposit wallet not configured', 'error');
           return;
         }
 
@@ -665,7 +678,7 @@ export default function ProvablyFairGame() {
           ],
         });
         
-        alert(`💰 USDC deposit transaction submitted! Waiting for confirmation...`);
+        showToast(`USDC deposit transaction submitted!\nWaiting for confirmation...`, 'info');
       } else {
         // ETH deposit
         const amountInWei = parseUnits(amount.toString(), 18); // ETH has 18 decimals
@@ -684,11 +697,11 @@ export default function ProvablyFairGame() {
           ],
         });
         
-        alert(`💰 ETH deposit transaction submitted! Waiting for confirmation...`);
+        showToast(`ETH deposit transaction submitted!\nWaiting for confirmation...`, 'info');
       }
     } catch (error: any) {
       console.error('Deposit error:', error);
-      alert(`Deposit failed: ${error.message || 'Unknown error'}`);
+      showToast(`Deposit failed: ${error.message || 'Unknown error'}`, 'error');
       localStorage.removeItem(`lastDepositAmount_${address}`);
       localStorage.removeItem(`lastDepositCurrency_${address}`);
     }
@@ -697,17 +710,17 @@ export default function ProvablyFairGame() {
   // Handle withdrawal - submits a request for manual processing
   const handleWithdraw = async (amount: number) => {
     if (!address) {
-      alert('Please connect wallet first');
+      showToast('Please connect wallet first', 'warning');
       return;
     }
     
     if (amount > userBalance) {
-      alert('Insufficient balance');
+      showToast('Insufficient balance', 'error');
       return;
     }
     
     if (amount <= 0) {
-      alert('Invalid withdrawal amount');
+      showToast('Invalid withdrawal amount', 'error');
       return;
     }
 
@@ -752,27 +765,27 @@ export default function ProvablyFairGame() {
         }
         
         setShowWithdrawModal(false);
-        alert(`✅ Withdrawal request submitted!\n\nAmount: ${amount.toFixed(2)} USDC\nRequest ID: ${data.requestId}\n\nYour withdrawal will be processed manually. Check your wallet in 24-48 hours.`);
+        showToast(`Withdrawal request submitted!\n\nAmount: ${amount.toFixed(2)} USDC\nRequest ID: ${data.requestId}\n\nYour withdrawal will be processed manually. Check your wallet in 24-48 hours.`, 'success');
         console.log('📝 Withdrawal request submitted:', data.requestId);
       } else {
-        alert(`Withdrawal request failed: ${data.error || 'Unknown error'}`);
+        showToast(`Withdrawal request failed: ${data.error || 'Unknown error'}`, 'error');
       }
     } catch (error) {
       console.error('Withdrawal error:', error);
-      alert('Failed to submit withdrawal request. Please try again.');
+      showToast('Failed to submit withdrawal request. Please try again.', 'error');
     }
   };
 
   // Handle USDC payment choice
   const handleChooseUSDC = async () => {
     if (!isConnected) {
-      alert('Please connect wallet first to play with USDC');
+      showToast('Please connect wallet first to play with USDC', 'warning');
       return;
     }
     
     // Check real USDC balance
     if (usdcBalance < 1) {
-      alert(`Insufficient USDC balance. You have ${usdcBalance.toFixed(2)} USDC. Please deposit at least 1 USDC.`);
+      showToast(`Insufficient USDC balance. You have ${usdcBalance.toFixed(2)} USDC. Please deposit at least 1 USDC.`, 'warning');
       setShowDepositModal(true);
       return;
     }
@@ -785,7 +798,7 @@ export default function ProvablyFairGame() {
       console.log('💰 Switched to USDC mode - 1 USDC payment processed');
     } catch (error: any) {
       console.error('Payment error:', error);
-      alert(`Payment failed: ${error.message || 'Unknown error'}`);
+      showToast(`Payment failed: ${error.message || 'Unknown error'}`, 'error');
     }
   };
 
@@ -1053,8 +1066,10 @@ export default function ProvablyFairGame() {
   }
 
   return (
-    <div className="h-screen bg-black text-white flex flex-col items-center p-1 w-full mx-auto overflow-hidden">
-      {/* Header - Title centered, buttons below */}
+    <>
+      <ToastContainer toasts={toasts} removeToast={removeToast} />
+      <div className="h-screen bg-black text-white flex flex-col items-center p-1 w-full mx-auto overflow-hidden">
+        {/* Header - Title centered, buttons below */}
       <div className="w-full pt-1 pb-2 flex-shrink-0">
         {/* Title Row - Compact */}
         <div className="flex items-center justify-between mb-1">
@@ -1124,11 +1139,11 @@ export default function ProvablyFairGame() {
             <button
               onClick={() => {
                 if (!isConnected) {
-                  alert('Connect wallet first');
+                  showToast('Connect wallet first', 'warning');
                   return;
                 }
                 if (userBalance < 1) {
-                  alert('Need at least 1 USDC');
+                  showToast('Need at least 1 USDC balance', 'warning');
                   setShowDepositModal(true);
                   return;
                 }
@@ -2204,6 +2219,7 @@ export default function ProvablyFairGame() {
         onSave={handleSaveUsername}
         onClose={() => setShowUsernameModal(false)}
       />
-    </div>
+      </div>
+    </>
   );
 }
