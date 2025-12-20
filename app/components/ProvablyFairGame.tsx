@@ -57,6 +57,18 @@ export default function ProvablyFairGame() {
   const { payEntryFee, isPending: isPaymentPending, isConfirming: isPaymentConfirming, isSuccess: isPaymentSuccess, error: paymentError, balance: usdcBalance } = useUSDCPayment(address);
   const { sendCalls, data: depositTxData, isPending: isDepositPending } = useSendCalls();
   
+  // 🔍 DEBUG: Log wallet connection status
+  useEffect(() => {
+    console.log('🔍 Wallet Connection Status:', {
+      isInMiniapp,
+      farcasterAddress,
+      wagmiAddress,
+      wagmiConnected,
+      finalAddress: address,
+      finalIsConnected: isConnected
+    });
+  }, [isInMiniapp, farcasterAddress, wagmiAddress, wagmiConnected, address, isConnected]);
+  
   // USDC contract address
   const USDC_ADDRESS = process.env.NEXT_PUBLIC_CHAIN === 'mainnet'
     ? '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
