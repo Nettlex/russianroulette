@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAccount, useSendCalls, useWaitForTransactionReceipt, useConnect, useDisconnect } from 'wagmi';
 import { parseUnits, encodeFunctionData } from 'viem';
 import { sdk } from '@farcaster/miniapp-sdk';
-import { useMiniKit } from '@coinbase/onchainkit/minikit';
 import {
   Wallet,
   ConnectWallet,
@@ -33,7 +32,6 @@ export default function ProvablyFairGame() {
   const { address: wagmiAddress, isConnected: wagmiConnected } = useAccount();
   const { connect, connectors, isPending: isConnectPending } = useConnect();
   const { disconnect } = useDisconnect();
-  const { transfer, isLoading: isMiniKitTransferLoading } = useMiniKit();
   
   // Check for Farcaster context and use its wallet address + profile
   const [farcasterAddress, setFarcasterAddress] = useState<string | null>(null);
@@ -655,40 +653,63 @@ export default function ProvablyFairGame() {
 
     try {
       if (currency === 'USDC') {
-        // USDC transfer via minikit
-        const result = await transfer({
-          address: DEPOSIT_WALLET as `0x${string}`,
-          amount: amount.toString(),
-          token: USDC_ADDRESS as `0x${string}`,
+        // USDC transfer via Farcaster SDK
+        // Use same sendCalls but with Farcaster context
+        const amountInUnits = parseUnits(amount.toString(), 6);
+        
+        const USDC_ABI = [
+          {
+            name: 'transfer',
+            type: 'function',
+            stateMutability: 'nonpayable',
+            inputs: [
+              { name: 'to', type: 'address' },
+              { name: 'amount', type: 'uint256' },
+            ],
+            outputs: [{ name: '', type: 'bool' }],
+          },
+        ] as const;
+        
+        const transferData = encodeFunctionData({
+          abi: USDC_ABI,
+          functionName: 'transfer',
+          args: [DEPOSIT_WALLET as `0x${string}`, amountInUnits],
         });
-
-        if (result.error) {
-          showToast(`Farcaster transfer failed: ${result.error}`, 'error');
-          return;
-        }
 
         // Save deposit info for confirmation
         localStorage.setItem(`lastDepositAmount_${address}`, amount.toString());
         localStorage.setItem(`lastDepositCurrency_${address}`, 'USDC');
         
-        showToast(`Farcaster USDC transfer submitted!\nWaiting for confirmation...`, 'info');
-      } else {
-        // ETH transfer via minikit
-        const result = await transfer({
-          address: ETH_DEPOSIT_WALLET,
-          amount: amount.toString(),
+        // Use sendCalls (works in both Farcaster and regular wallet)
+        sendCalls({
+          calls: [
+            {
+              to: USDC_ADDRESS as `0x${string}`,
+              data: transferData,
+            },
+          ],
         });
-
-        if (result.error) {
-          showToast(`Farcaster transfer failed: ${result.error}`, 'error');
-          return;
-        }
+        
+        showToast(`Farcaster USDC transfer submitted!\n✅ Using Farcaster wallet`, 'info');
+      } else {
+        // ETH transfer via Farcaster
+        const amountInWei = parseUnits(amount.toString(), 18);
 
         // Save deposit info for confirmation
         localStorage.setItem(`lastDepositAmount_${address}`, amount.toString());
         localStorage.setItem(`lastDepositCurrency_${address}`, 'ETH');
         
-        showToast(`Farcaster ETH transfer submitted!\nWaiting for confirmation...`, 'info');
+        // Use sendCalls for ETH transfer
+        sendCalls({
+          calls: [
+            {
+              to: ETH_DEPOSIT_WALLET,
+              value: amountInWei,
+            },
+          ],
+        });
+        
+        showToast(`Farcaster ETH transfer submitted!\n✅ Using Farcaster wallet`, 'info');
       }
     } catch (error: any) {
       console.error('Farcaster deposit error:', error);
