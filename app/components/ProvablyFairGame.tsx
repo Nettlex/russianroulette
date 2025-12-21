@@ -33,21 +33,42 @@ export default function ProvablyFairGame() {
   const { connect, connectors, isPending: isConnectPending } = useConnect();
   const { disconnect } = useDisconnect();
   
-  // Check for Farcaster context and use its wallet address
+  // Check for Farcaster context and use its wallet address + profile
   const [farcasterAddress, setFarcasterAddress] = useState<string | null>(null);
   const [isInMiniapp, setIsInMiniapp] = useState(false);
+  const [farcasterProfile, setFarcasterProfile] = useState<{
+    username: string;
+    displayName: string;
+    pfpUrl: string;
+    fid: number;
+  } | null>(null);
   
   useEffect(() => {
     sdk.context
       .then((context) => {
         if (context && context.user) {
           setIsInMiniapp(true);
+          
+          // Get wallet address
           const walletAddr = (context.user as any).custodyAddress || 
                            (context.user as any).walletAddress || 
                            (context.user as any).address;
           if (walletAddr) {
             setFarcasterAddress(walletAddr as string);
             console.log('🎯 Farcaster wallet detected in game:', walletAddr);
+          }
+          
+          // Get Farcaster profile data
+          const user = context.user as any;
+          if (user.username || user.displayName || user.pfpUrl) {
+            const profile = {
+              username: user.username || user.fname || 'farcaster-user',
+              displayName: user.displayName || user.display_name || user.username || 'Farcaster User',
+              pfpUrl: user.pfpUrl || user.pfp_url || user.profileImage || '',
+              fid: user.fid || 0,
+            };
+            setFarcasterProfile(profile);
+            console.log('👤 Farcaster profile loaded:', profile);
           }
         }
       })
@@ -1058,6 +1079,7 @@ export default function ProvablyFairGame() {
           playerStats={playerStats}
           userBalance={userBalance}
           username={username}
+          farcasterProfile={farcasterProfile}
           onDeposit={() => setShowDepositModal(true)}
           onWithdraw={() => setShowWithdrawModal(true)}
           onEditUsername={() => setShowUsernameModal(true)}
@@ -1132,33 +1154,55 @@ export default function ProvablyFairGame() {
               {isConnectPending ? 'Connecting...' : 'Connect Wallet'}
             </button>
           ) : (
-            <Wallet>
-              <ConnectWallet className="bg-blue-600 hover:bg-blue-700 text-white text-[10px] px-2 py-1 rounded-lg transition-all flex items-center gap-1">
-                <svg className="h-3 w-3" viewBox="0 0 111 111" fill="none">
-                  <path d="M54.921 110.034C85.359 110.034 110.034 85.402 110.034 55.017C110.034 24.6319 85.359 0 54.921 0C26.0432 0 2.35281 22.1714 0 50.3923H72.8467V59.6416H3.9565e-07C2.35281 87.8625 26.0432 110.034 54.921 110.034Z" fill="white"/>
-                </svg>
-                <Avatar className="h-4 w-4" />
-                <Name />
-              </ConnectWallet>
-              <WalletDropdown>
-                <Identity className="px-4 pt-3 pb-2">
-                  <Avatar />
-                  {username ? (
-                    <div>
-                      <div className="font-bold text-white">{username}</div>
-                      <div className="text-xs text-gray-500">Connected to Base</div>
-                    </div>
+            <>
+              {farcasterProfile ? (
+                // Farcaster connected - show Farcaster avatar and username
+                <button
+                  className="bg-purple-600 hover:bg-purple-700 text-white text-[10px] px-2 py-1 rounded-lg transition-all flex items-center gap-1"
+                  onClick={() => setShowPage('profile')}
+                >
+                  {farcasterProfile.pfpUrl ? (
+                    <img 
+                      src={farcasterProfile.pfpUrl} 
+                      alt="Farcaster avatar"
+                      className="h-4 w-4 rounded-full"
+                    />
                   ) : (
-                    <div>
-                      <Name />
-                      <div className="text-xs text-gray-500">Connected to Base</div>
-                    </div>
+                    <span className="text-xs">🟣</span>
                   )}
-                </Identity>
-                <WalletDropdownFundLink />
-                <WalletDropdownDisconnect />
-              </WalletDropdown>
-            </Wallet>
+                  <span className="font-medium">{farcasterProfile.displayName}</span>
+                </button>
+              ) : (
+                // Regular wallet connection
+                <Wallet>
+                  <ConnectWallet className="bg-blue-600 hover:bg-blue-700 text-white text-[10px] px-2 py-1 rounded-lg transition-all flex items-center gap-1">
+                    <svg className="h-3 w-3" viewBox="0 0 111 111" fill="none">
+                      <path d="M54.921 110.034C85.359 110.034 110.034 85.402 110.034 55.017C110.034 24.6319 85.359 0 54.921 0C26.0432 0 2.35281 22.1714 0 50.3923H72.8467V59.6416H3.9565e-07C2.35281 87.8625 26.0432 110.034 54.921 110.034Z" fill="white"/>
+                    </svg>
+                    <Avatar className="h-4 w-4" />
+                    <Name />
+                  </ConnectWallet>
+                  <WalletDropdown>
+                    <Identity className="px-4 pt-3 pb-2">
+                      <Avatar />
+                      {username ? (
+                        <div>
+                          <div className="font-bold text-white">{username}</div>
+                          <div className="text-xs text-gray-500">Connected to Base</div>
+                        </div>
+                      ) : (
+                        <div>
+                          <Name />
+                          <div className="text-xs text-gray-500">Connected to Base</div>
+                        </div>
+                      )}
+                    </Identity>
+                    <WalletDropdownFundLink />
+                    <WalletDropdownDisconnect />
+                  </WalletDropdown>
+                </Wallet>
+              )}
+            </>
           )}
           
           {/* Right - Free/Paid Mode Buttons */}

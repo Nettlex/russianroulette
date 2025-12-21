@@ -12,12 +12,18 @@ interface ProfileProps {
   };
   userBalance: number;
   username?: string;
+  farcasterProfile?: {
+    username: string;
+    displayName: string;
+    pfpUrl: string;
+    fid: number;
+  } | null;
   onDeposit: () => void;
   onWithdraw: () => void;
   onEditUsername?: () => void;
 }
 
-export default function Profile({ playerStats, userBalance, username, onDeposit, onWithdraw, onEditUsername }: ProfileProps) {
+export default function Profile({ playerStats, userBalance, username, farcasterProfile, onDeposit, onWithdraw, onEditUsername }: ProfileProps) {
   const { address, isConnected } = useAccount();
 
   const calculateScore = (maxStreak: number, totalPulls: number, totalDeaths: number) => {
@@ -40,28 +46,53 @@ export default function Profile({ playerStats, userBalance, username, onDeposit,
         {isConnected ? (
           <div className="space-y-3">
             <div className="flex items-center gap-3">
-              <Avatar className="h-12 w-12" />
-              <div className="flex-1">
-                {username ? (
-                  <div>
-                    <p className="font-bold text-lg text-white">{username}</p>
-                    <p className="text-xs text-gray-500">Connected to Base</p>
+              {farcasterProfile ? (
+                // Show Farcaster avatar
+                <>
+                  {farcasterProfile.pfpUrl ? (
+                    <img 
+                      src={farcasterProfile.pfpUrl} 
+                      alt="Farcaster avatar"
+                      className="h-12 w-12 rounded-full border-2 border-purple-500"
+                    />
+                  ) : (
+                    <div className="h-12 w-12 rounded-full bg-purple-600 flex items-center justify-center text-2xl">
+                      🟣
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    <p className="font-bold text-lg text-white">{farcasterProfile.displayName}</p>
+                    <p className="text-xs text-purple-400">@{farcasterProfile.username}</p>
+                    <p className="text-xs text-gray-500">Connected via Farcaster</p>
                   </div>
-                ) : (
-                  <div>
-                    <Name className="font-bold text-lg" />
-                    <p className="text-xs text-gray-500">Connected to Base</p>
+                </>
+              ) : (
+                // Show regular wallet avatar
+                <>
+                  <Avatar className="h-12 w-12" />
+                  <div className="flex-1">
+                    {username ? (
+                      <div>
+                        <p className="font-bold text-lg text-white">{username}</p>
+                        <p className="text-xs text-gray-500">Connected to Base</p>
+                      </div>
+                    ) : (
+                      <div>
+                        <Name className="font-bold text-lg" />
+                        <p className="text-xs text-gray-500">Connected to Base</p>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-              {onEditUsername && (
-                <button
-                  onClick={onEditUsername}
-                  className="text-xs bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white px-3 py-1 rounded-lg transition-all"
-                  title="Edit username"
-                >
-                  ✏️ Edit
-                </button>
+                  {onEditUsername && (
+                    <button
+                      onClick={onEditUsername}
+                      className="text-xs bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white px-3 py-1 rounded-lg transition-all"
+                      title="Edit username"
+                    >
+                      ✏️ Edit
+                    </button>
+                  )}
+                </>
               )}
             </div>
             
