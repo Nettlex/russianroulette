@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAccount, useSendCalls, useWaitForTransactionReceipt, useConnect, useDisconnect } from 'wagmi';
 import { parseUnits, encodeFunctionData } from 'viem';
 import { sdk } from '@farcaster/miniapp-sdk';
+import { useMiniKit } from '@coinbase/onchainkit/minikit';
 import {
   Wallet,
   ConnectWallet,
@@ -32,6 +33,7 @@ export default function ProvablyFairGame() {
   const { address: wagmiAddress, isConnected: wagmiConnected } = useAccount();
   const { connect, connectors, isPending: isConnectPending } = useConnect();
   const { disconnect } = useDisconnect();
+  const { transfer, isLoading: isMiniKitTransferLoading } = useMiniKit();
   
   // Check for Farcaster context and use its wallet address + profile
   const [farcasterAddress, setFarcasterAddress] = useState<string | null>(null);
@@ -220,6 +222,7 @@ export default function ProvablyFairGame() {
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [showPendingPrizesModal, setShowPendingPrizesModal] = useState(false);
   const [depositCurrency, setDepositCurrency] = useState<'USDC' | 'ETH'>('USDC'); // Currency selection
+  const [paymentMethod, setPaymentMethod] = useState<'base-wallet' | 'farcaster'>('base-wallet'); // Payment method
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
   
   // Show notification instead of alert (works in sandboxed iframes)
@@ -643,6 +646,56 @@ export default function ProvablyFairGame() {
     }
   };
 
+  // Handle deposit with Farcaster minikit
+  const handleFarcasterDeposit = async (amount: number, currency: 'USDC' | 'ETH' = 'USDC') => {
+    if (!address) {
+      showToast('Please connect wallet first', 'warning');
+      return;
+    }
+
+    try {
+      if (currency === 'USDC') {
+        // USDC transfer via minikit
+        const result = await transfer({
+          address: DEPOSIT_WALLET as `0x${string}`,
+          amount: amount.toString(),
+          token: USDC_ADDRESS as `0x${string}`,
+        });
+
+        if (result.error) {
+          showToast(`Farcaster transfer failed: ${result.error}`, 'error');
+          return;
+        }
+
+        // Save deposit info for confirmation
+        localStorage.setItem(`lastDepositAmount_${address}`, amount.toString());
+        localStorage.setItem(`lastDepositCurrency_${address}`, 'USDC');
+        
+        showToast(`Farcaster USDC transfer submitted!\nWaiting for confirmation...`, 'info');
+      } else {
+        // ETH transfer via minikit
+        const result = await transfer({
+          address: ETH_DEPOSIT_WALLET,
+          amount: amount.toString(),
+        });
+
+        if (result.error) {
+          showToast(`Farcaster transfer failed: ${result.error}`, 'error');
+          return;
+        }
+
+        // Save deposit info for confirmation
+        localStorage.setItem(`lastDepositAmount_${address}`, amount.toString());
+        localStorage.setItem(`lastDepositCurrency_${address}`, 'ETH');
+        
+        showToast(`Farcaster ETH transfer submitted!\nWaiting for confirmation...`, 'info');
+      }
+    } catch (error: any) {
+      console.error('Farcaster deposit error:', error);
+      showToast(`Farcaster deposit failed: ${error.message || 'Unknown error'}`, 'error');
+    }
+  };
+
   // Handle deposit - actually transfer USDC from wallet to deposit address
   const handleDeposit = async (amount: number, currency: 'USDC' | 'ETH' = 'USDC') => {
     if (!isConnected || !address) {
@@ -655,6 +708,12 @@ export default function ProvablyFairGame() {
       return;
     }
 
+    // Route to appropriate payment method
+    if (paymentMethod === 'farcaster' && isInMiniapp) {
+      return handleFarcasterDeposit(amount, currency);
+    }
+
+    // Base wallet (wagmi) deposit
     try {
       if (currency === 'USDC') {
         // USDC deposit
@@ -2064,6 +2123,43 @@ export default function ProvablyFairGame() {
                 💵 Deposit Funds
               </h3>
               
+              {/* Payment Method Toggle (if Farcaster available) */}
+              {isInMiniapp && (
+                <div className="mb-4">
+                  <p className="text-xs text-gray-400 mb-2 text-center">Payment Method</p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setPaymentMethod('base-wallet')}
+                      className={`flex-1 py-2 px-3 rounded-lg text-sm font-bold transition-all ${
+                        paymentMethod === 'base-wallet'
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                      }`}
+                    >
+                      <div className="flex items-center justify-center gap-1">
+                        <svg className="h-4 w-4" viewBox="0 0 111 111" fill="currentColor">
+                          <path d="M54.921 110.034C85.359 110.034 110.034 85.402 110.034 55.017C110.034 24.6319 85.359 0 54.921 0C26.0432 0 2.35281 22.1714 0 50.3923H72.8467V59.6416H3.9565e-07C2.35281 87.8625 26.0432 110.034 54.921 110.034Z"/>
+                        </svg>
+                        <span>Base Wallet</span>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => setPaymentMethod('farcaster')}
+                      className={`flex-1 py-2 px-3 rounded-lg text-sm font-bold transition-all ${
+                        paymentMethod === 'farcaster'
+                          ? 'bg-purple-600 text-white'
+                          : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                      }`}
+                    >
+                      <div className="flex items-center justify-center gap-1">
+                        <span>🟣</span>
+                        <span>Farcaster</span>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              )}
+              
               {/* Currency Toggle */}
               <div className="flex gap-2 mb-4">
                 <button
@@ -2128,9 +2224,13 @@ export default function ProvablyFairGame() {
               </button>
 
               <p className="text-xs text-gray-500 mt-4 text-center">
-                {depositCurrency === 'USDC' 
-                  ? '✅ Batched onchain transaction (EIP-5792) - Single signature for approve + transfer'
-                  : '✅ Real onchain transaction - ETH sent to 0x0B91...27AA'}
+                {paymentMethod === 'farcaster' ? (
+                  <>✅ Farcaster wallet transfer - Powered by Base</>
+                ) : depositCurrency === 'USDC' ? (
+                  <>✅ Batched onchain transaction (EIP-5792) - Single signature</>
+                ) : (
+                  <>✅ Real onchain transaction - ETH sent to 0x0B91...27AA</>
+                )}
               </p>
             </motion.div>
           </motion.div>
