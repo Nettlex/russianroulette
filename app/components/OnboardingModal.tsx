@@ -25,12 +25,12 @@ export default function OnboardingModal({ isOpen, onClose }: OnboardingModalProp
     {
       emoji: '🔫',
       title: 'How to Play',
-      description: 'Pull the trigger and survive 6 rounds:',
+      description: 'Pull the trigger and survive 7 rounds:',
       bullets: [
         '1️⃣ Connect your wallet',
         '2️⃣ Deposit USDC or ETH to play',
         '3️⃣ Pull the trigger (1 in 6 chance)',
-        '4️⃣ Survive 6 pulls to complete the round',
+        '4️⃣ Survive 7 pulls to complete the round',
         '5️⃣ Cash out anytime to save your streak',
       ],
     },

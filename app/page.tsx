@@ -219,7 +219,7 @@ export default function Home() {
                 <p>4️⃣ Cash out or compete on the leaderboard</p>
               </div>
               <p className="text-xs text-blue-300 mt-3 text-center">
-                Survive 6 pulls to complete the round
+                Survive 7 pulls to complete the round
               </p>
             </div>
           </div>

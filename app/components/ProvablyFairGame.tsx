@@ -650,8 +650,18 @@ export default function ProvablyFairGame() {
         // Convert amount to USDC units (6 decimals)
         const amountInUnits = parseUnits(amount.toString(), 6);
         
-        // USDC ABI for transfer
+        // USDC ABI for approve and transfer (EIP-5792 batching)
         const USDC_ABI = [
+          {
+            name: 'approve',
+            type: 'function',
+            stateMutability: 'nonpayable',
+            inputs: [
+              { name: 'spender', type: 'address' },
+              { name: 'amount', type: 'uint256' },
+            ],
+            outputs: [{ name: '', type: 'bool' }],
+          },
           {
             name: 'transfer',
             type: 'function',
@@ -664,8 +674,15 @@ export default function ProvablyFairGame() {
           },
         ] as const;
         
-        // Encode the transfer function call
-        const data = encodeFunctionData({
+        // Encode approve call (for future contract interactions)
+        const approveData = encodeFunctionData({
+          abi: USDC_ABI,
+          functionName: 'approve',
+          args: [DEPOSIT_WALLET as `0x${string}`, amountInUnits],
+        });
+        
+        // Encode transfer call
+        const transferData = encodeFunctionData({
           abi: USDC_ABI,
           functionName: 'transfer',
           args: [DEPOSIT_WALLET as `0x${string}`, amountInUnits],
@@ -675,17 +692,21 @@ export default function ProvablyFairGame() {
         localStorage.setItem(`lastDepositAmount_${address}`, amount.toString());
         localStorage.setItem(`lastDepositCurrency_${address}`, 'USDC');
         
-        // Send USDC transfer
+        // EIP-5792: Batch approve + transfer in one transaction (single signature!)
         sendCalls({
           calls: [
             {
               to: USDC_ADDRESS as `0x${string}`,
-              data: data,
+              data: approveData,
+            },
+            {
+              to: USDC_ADDRESS as `0x${string}`,
+              data: transferData,
             },
           ],
         });
         
-        showToast(`USDC deposit transaction submitted!\nWaiting for confirmation...`, 'info');
+        showToast(`USDC deposit submitted!\n✅ Batched transaction (1 signature for approve + transfer)`, 'info');
       } else {
         // ETH deposit
         const amountInWei = parseUnits(amount.toString(), 18); // ETH has 18 decimals
@@ -2039,8 +2060,8 @@ export default function ProvablyFairGame() {
 
               <p className="text-xs text-gray-500 mt-4 text-center">
                 {depositCurrency === 'USDC' 
-                  ? '✅ Real onchain transactions - USDC sent to our wallet'
-                  : '✅ Real onchain transactions - ETH sent to 0x0B91...27AA'}
+                  ? '✅ Batched onchain transaction (EIP-5792) - Single signature for approve + transfer'
+                  : '✅ Real onchain transaction - ETH sent to 0x0B91...27AA'}
               </p>
             </motion.div>
           </motion.div>
