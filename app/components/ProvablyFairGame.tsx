@@ -23,6 +23,7 @@ import FairnessVerification from './FairnessVerification';
 import Leaderboard from './Leaderboard';
 import Profile from './Profile';
 import UsernameModal from './UsernameModal';
+import OnboardingModal from './OnboardingModal';
 import { ToastContainer } from './Toast';
 import { getPendingDistributionsForAddress } from '../utils/prizeDistribution';
 // Removed: getUserBalance, getTotalAvailableBalance, approvePendingPrize - now server-authoritative
@@ -44,10 +45,15 @@ export default function ProvablyFairGame() {
   } | null>(null);
   
   useEffect(() => {
+    // Call ready() first
+    sdk.actions.ready().catch(console.error);
+    
     sdk.context
       .then((context) => {
+        console.log('🟣 Farcaster SDK context:', context);
         if (context && context.user) {
           setIsInMiniapp(true);
+          console.log('✅ In Farcaster miniapp!');
           
           // Get wallet address
           const walletAddr = (context.user as any).custodyAddress || 
@@ -70,9 +76,15 @@ export default function ProvablyFairGame() {
             setFarcasterProfile(profile);
             console.log('👤 Farcaster profile loaded:', profile);
           }
+        } else {
+          console.log('❌ No Farcaster context found');
+          setIsInMiniapp(false);
         }
       })
-      .catch(() => setIsInMiniapp(false));
+      .catch((err) => {
+        console.log('❌ Not in Farcaster miniapp:', err);
+        setIsInMiniapp(false);
+      });
   }, []);
   
   // Use Farcaster address if in miniapp and available, otherwise use wagmi
@@ -221,20 +233,18 @@ export default function ProvablyFairGame() {
   const [showPendingPrizesModal, setShowPendingPrizesModal] = useState(false);
   const [depositCurrency, setDepositCurrency] = useState<'USDC' | 'ETH'>('USDC'); // Currency selection
   const [paymentMethod, setPaymentMethod] = useState<'base-wallet' | 'farcaster'>('base-wallet'); // Payment method
-  const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+  const [showOnboardingModal, setShowOnboardingModal] = useState(false);
   
-  // Show notification instead of alert (works in sandboxed iframes)
-  const showNotification = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
-    setNotification({ message, type });
-    setTimeout(() => setNotification(null), 5000); // Auto-hide after 5 seconds
-  };
-  
-  // Toast notifications (replaces alert() for iframe compatibility)
+  // Toast notifications (single system - no duplicates!)
   const [toasts, setToasts] = useState<Array<{ id: string; message: string; type: 'success' | 'error' | 'info' | 'warning' }>>([]);
   
   const showToast = (message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
     const id = Date.now().toString() + Math.random().toString(36);
     setToasts(prev => [...prev, { id, message, type }]);
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+      setToasts(prev => prev.filter(toast => toast.id !== id));
+    }, 5000);
   };
   
   const removeToast = (id: string) => {
@@ -2145,7 +2155,7 @@ export default function ProvablyFairGame() {
               </h3>
               
               {/* Payment Method Toggle (if Farcaster available) */}
-              {isInMiniapp && (
+              {isInMiniapp && farcasterProfile && (
                 <div className="mb-4">
                   <p className="text-xs text-gray-400 mb-2 text-center">Payment Method</p>
                   <div className="flex gap-2">
@@ -2429,8 +2439,7 @@ export default function ProvablyFairGame() {
           </button>
           <button
             onClick={() => {
-              localStorage.removeItem('hasSeenOnboarding');
-              window.location.reload();
+              setShowOnboardingModal(true);
             }}
             className="py-3 text-gray-400 hover:text-white hover:bg-gray-800 transition-all"
             title="View tutorial"
@@ -2447,6 +2456,12 @@ export default function ProvablyFairGame() {
         currentUsername={username}
         onSave={handleSaveUsername}
         onClose={() => setShowUsernameModal(false)}
+      />
+      
+      {/* Onboarding Modal - Triggered by Help button */}
+      <OnboardingModal 
+        isOpen={showOnboardingModal} 
+        onClose={() => setShowOnboardingModal(false)} 
       />
       
       {/* Toast Notifications - Fixed position, works in iframes */}
