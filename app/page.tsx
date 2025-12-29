@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import OnboardingModal from "./components/OnboardingModal";
 import { useMiniKit } from "@coinbase/onchainkit/minikit";
 import { useAccount, useConnect, useDisconnect } from "wagmi";
